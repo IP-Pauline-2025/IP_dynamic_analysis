@@ -8,10 +8,12 @@ addprocs(6)
 
 @everywhere begin
     using UncertaintyQuantification, DelimitedFiles
-    using UncertaintyQuantification
-    using DelimitedFiles
-
-    include("C:/IP/dynamic_analysis/calculate_wind_force.jl")
+    hostname = gethostname()
+    if hostname == "IRZ-PC1337"
+        include("C:/OMNISSIAH/Julia/2025-08-pauline-git/dynamic_analysis/calculate_wind_force.jl")
+    else
+        include("C:/IP/dynamic_analysis/calculate_wind_force.jl")
+    end
 
     # parameter definition, they can be changed but are the same for each sample
     Δt = Parameter(0.02, :dt)                       # time step size
@@ -48,7 +50,11 @@ addprocs(6)
 
     # directory where the OpenSees input files are stored
 
-    sourcedir = joinpath(pwd(), "C:/IP/dynamic_analysis/Model_1")
+    if hostname == "IRZ-PC1337"
+        sourcedir = joinpath(pwd(), "C:/OMNISSIAH/Julia/2025-08-pauline-git/dynamic_analysis/Model_1")
+    else
+        sourcedir = joinpath(pwd(), "C:/IP/dynamic_analysis/Model_1")
+    end
     sourcefile = ["FEM_1.tcl", "wind-speed.dat", "wind-load-abs.dat", "wind-load-node2.dat", "wind-load-node3.dat"]
 
     numberformats = Dict(:dt => ".8e", :wl => ".8e", :E => ".8e", :Iz => ".8e")

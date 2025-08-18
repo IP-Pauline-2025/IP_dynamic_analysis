@@ -1,4 +1,4 @@
-using Distributed, Printf, Dates
+using Distributed, Printf, Dates, Plots
 time_stamp = Dates.format(now(),  "yyyymmdd_HHMMSS")
 @printf "[%s]: " time_stamp
 println("Reliability Analysis of a Dynamic Tower-like Structure under Wind loads")

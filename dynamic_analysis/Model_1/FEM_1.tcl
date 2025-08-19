@@ -37,8 +37,8 @@ node 3 0. 50;
 fix 1 1 1 1; 			           # node DX DY RZ (0 = unconstrained, 1 = constrained)
 
 # nodal masses:
-mass 2 0 4.4e+03 0.;			   # node XD DY RZ (Mass=Weight in kg)
-mass 3 0 8.8e+03 0.;               # Mass in the Y-direction is needed for gravity loads
+mass 2 0 10.54e+03 0.;			   # node XD DY RZ (Mass=Weight in kg)
+mass 3 0 2.63e+03 0.;               # Mass in the Y-direction is needed for gravity loads
                                        
 # Define ELEMENTS -------------------------------------------------------------
 # define geometric transformation: performs a linear geometric transformation of beam stiffness and resisting force from the basic system to the global-coordinate system

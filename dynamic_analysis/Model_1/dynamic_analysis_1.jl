@@ -32,18 +32,7 @@ DOWEWANTplots = true
     v_mean = 10.0 # mean wind speed in m/s
     karmanfunc = (f) -> σ_u^2 * (4*L_u / v_mean) / ((1 + (2*π*f * L_u / v_mean)^2)^(5/6))
     psdvalues = karmanfunc.(fdisc)
-    plotpsdq = false
-    if plotpsdq && length(procs()) == 1
-        using Plots
-        plot(fdisc, psdvalues, 
-            xscale=:log10, 
-            yscale=:log10, 
-            label="von Karman Spectrum", 
-            xlabel="Frequency (Hz)", 
-            ylabel="Power Spectral Density (m²/s²/Hz)", 
-            title="von Karman PSD for Longitudinal Wind Component"
-        )
-    end
+
     #coinstruct the empirical PSD representing the von Karman spectrum
     epWindPSD = EmpiricalPSD(fdisc, psdvalues)
 
@@ -139,6 +128,21 @@ println("Probability of failure: $pf")
 ######################################### plotting section ################################################################ 
 if DOWEWANTplots
     using Plots
+
+    # plotting of PSD function
+    plotpsdq = false
+    if plotpsdq && length(procs()) == 1
+        plot(fdisc, psdvalues, 
+            xscale=:log10, 
+            #xticks=collect(0:5:50),
+            yscale=:log10, 
+            label="von Karman Spectrum", 
+            xlabel="Frequency (Hz)", 
+            ylabel="Power Spectral Density (m²/s²/Hz)", 
+            title="von Karman PSD for Longitudinal Wind Component"
+        )
+    end
+
     #without normalization
     #which sample should be plotted?
     nmc = 5
@@ -186,6 +190,8 @@ if DOWEWANTplots
             title="Wind Speeds for All Samples",
             legend=legendval
         )
+        display(pwl_base)
+        display(pwl_node2)
     end
 
     # Histogram of the maximum absolute displacement
@@ -220,10 +226,6 @@ if DOWEWANTplots
 
     # aggregate the histograms for disp and wind loads at node 2 and node 3
     phist = plot(phist_maxdisp, phist_wl; layout=(2, 1), size=(800, 600), title="Histograms")
-
-    display(pwl_base)
-
-    display(pwl_node2)
 
     display(phist)
 

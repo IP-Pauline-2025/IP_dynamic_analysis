@@ -128,7 +128,7 @@ end
 # this runs the reliability analysis, in this case a Monte Carlo simulation with 1 sample
 # this part: df -> 200 .- df.max_abs_disp
 # actually defines the performance function also known as limit state function which is evaluated for each of the samples, if you use the same record this of course does not make any sense
-pf, mc_std, samples = probability_of_failure(models, df -> 1 .- df.max_abs_disp, [Δt, timeSteps, wl, E, Iz], MonteCarlo(10))
+pf, mc_std, samples = probability_of_failure(models, df -> 1 .- df.max_abs_disp, [Δt, timeSteps, wl, E, Iz], MonteCarlo(100))
 println
 println("Probability of failure: $pf")
 

@@ -47,7 +47,9 @@ function calculate_wind_force(category::Int, v_b0::Float64, lat::Float64, z::Flo
         c_season = 1.0 # seasonal factor 1,0 unless the National Annex gives a different value
         c_alt = 1.0 # 1,0 altitude factor 1,0 unless the National Annex gives a different value
         c_prop = 1.0 # probability factor is 1,0 because the data already contains the probability
-    v_b = c_prop * c_dir * c_season * c_alt * v_b0
+    # calculate the wind load based on the absolute value of the basic wind velocity, the direction of the windload is asigned at the end of the process
+    v_b0_abs = abs(v_b0) # absolute value of the basic wind velocity
+    v_b = c_prop * c_dir * c_season * c_alt * v_b0_abs
 
 
 
@@ -65,7 +67,7 @@ function calculate_wind_force(category::Int, v_b0::Float64, lat::Float64, z::Flo
                 #tarrain factor k_r according to 6.7
                 z_0II = 0.05 # roughness length for terrain category II in m
                 k_r = 0.19 * (z_0 / z_0II)^(0.07)
-                z_g = k_r * abs(v_b) / (15 * f)
+                z_g = k_r * v_b / (15 * f)
                 if z_g == 0 || z_0 <= 0
                     error("Invalid gradient height or roughness length.")
                 end
@@ -132,5 +134,9 @@ function calculate_wind_force(category::Int, v_b0::Float64, lat::Float64, z::Flo
 
     # calculate wind force F_wp in kN
     F_wp = c_f * q_p * A_ref * 0.001 #0,001 is the conversion factor from N to kN
+    # define direction of the wind force based on the sign of v_b0
+    #if v_b0 < 0
+     #   F_wp = -F_wp # if the wind speed is negative, the force is in the opposite direction
+    #end
     return F_wp
 end

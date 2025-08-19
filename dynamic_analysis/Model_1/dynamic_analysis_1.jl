@@ -6,6 +6,8 @@ tic_total = time()
 
 addprocs(6)
 
+DOWEWANTplots = true
+
 @everywhere begin
     using UncertaintyQuantification, DelimitedFiles
     hostname = gethostname()
@@ -25,7 +27,7 @@ addprocs(6)
     # von Karman spectrum
     fdisc = collect(0.01:0.01:50)
     # roughly derived parameters from https://www.sciencedirect.com/science/article/pii/S0167610520302725
-    σ_u = 2 # standard deviation of wind speed in m/s
+    σ_u = 1 # standard deviation of wind speed in m/s
     L_u = 50.8 # length scale in m
     v_mean = 10.0 # mean wind speed in m/s
     karmanfunc = (f) -> σ_u^2 * (4*L_u / v_mean) / ((1 + (2*π*f * L_u / v_mean)^2)^(5/6))
@@ -125,73 +127,109 @@ addprocs(6)
     models = [wl_model, base_wl_model, wl_node2_model, wl_node3_model, ext]
 end
 
-# this runs the reliability analysis, in this case a Monte Carlo simulation with 1 sample
+# this runs the reliability analysis, in this case a Monte Carlo simulation with N_MC samples
+N_MC = 100 # Number of Monte Carlo Samples
+println("Running Monte Carlo simulation with $N_MC samples...")
 # this part: df -> 200 .- df.max_abs_disp
 # actually defines the performance function also known as limit state function which is evaluated for each of the samples, if you use the same record this of course does not make any sense
-pf, mc_std, samples = probability_of_failure(models, df -> 1 .- df.max_abs_disp, [Δt, timeSteps, wl, E, Iz], MonteCarlo(10))
+pf, mc_std, samples = probability_of_failure(models, df -> 1 .- df.max_abs_disp, [Δt, timeSteps, wl, E, Iz], MonteCarlo(N_MC))
 println
 println("Probability of failure: $pf")
 
-using Plots
-#without normalization
-#which sample should be plotted?
-nmc = 5
-#overall maximum tip displacement that is reached
-max_tip_disp = maximum(samples.max_abs_disp)
-println("Maximum tip displacement: $max_tip_disp m")
-#With following material properties:
-println("Young's modulus: $(samples.E[nmc]) Pa")
-println("Second moment of area: $(samples.Iz[nmc]) m^4")
-println("Cross sectional area (fixed in .tcl):" , 0.1, " m^2")
-# Maximum occuring wind speed
-max_wind_speed = maximum(abs.(samples.wl_base[nmc]))
-println("Maximum wind speed: $max_wind_speed m/s")
-#Maximum occuring wind load at node 2
-max_wl_node2 = maximum(abs.(samples.wl_node2[nmc]))
-println("Maximum wind load at node 2: $max_wl_node2 N")
+######################################### plotting section ################################################################ 
+if DOWEWANTplots
+    using Plots
+    #without normalization
+    #which sample should be plotted?
+    nmc = 5
+    #overall maximum tip displacement that is reached
+    max_tip_disp = maximum(samples.max_abs_disp)
+    println("Maximum tip displacement: $max_tip_disp m")
+    #With following material properties:
+    println("Young's modulus: $(samples.E[nmc]) Pa")
+    println("Second moment of area: $(samples.Iz[nmc]) m^4")
+    println("Cross sectional area (fixed in .tcl):" , 0.1, " m^2")
+    # Maximum occuring wind speed
+    max_wind_speed = maximum(abs.(samples.wl_base[nmc]))
+    println("Maximum wind speed: $max_wind_speed m/s")
+    #Maximum occuring wind load at node 2
+    max_wl_node2 = maximum(abs.(samples.wl_node2[nmc]))
+    println("Maximum wind load at node 2: $max_wl_node2 N")
 
-pdisp = plot(t, samples.wl_base[nmc]; label="wind speed in m/s", xlabel="time in s", ylabel="wind speed and displacement", legend=:bottomright)
-plot!(samples.sim_time[nmc], samples.disp[nmc]; label="Displacement at top node in m", linewidth=2)
-plot!(samples.sim_time[nmc], samples.wl_node2[nmc]; label="Wind load at node 2 in kN", linewidth=2)
-plot!(samples.sim_time[nmc], samples.wl_node3[nmc]; label="Wind load at node 3 (top) in KN", linewidth=2)
-# This file was generated using Literate.jl, https://github.com/fredrikekre/Literate.jl
+    pdisp = plot(t, samples.wl_base[nmc]; label="wind speed in m/s", xlabel="time in s", ylabel="wind speed and displacement", legend=:topright)
+    plot!(samples.sim_time[nmc], samples.disp[nmc]; label="Displacement at top node in m", linewidth=2)
+    plot!(samples.sim_time[nmc], samples.wl_node2[nmc]; label="Wind load at node 2 in kN", linewidth=2)
+    plot!(samples.sim_time[nmc], samples.wl_node3[nmc]; label="Wind load at node 3 (top) in KN", linewidth=2)
+    # This file was generated using Literate.jl, https://github.com/fredrikekre/Literate.jl
 
-# Histogram of the maximum absolute displacement
-max_abs_disp_values = samples.max_abs_disp
-phist_maxdisp = histogram(max_abs_disp_values, 
-    bins=30, 
-    xlabel="Maximum Displacement (m)", 
-    ylabel="Frequency", 
-    title="Histogram of Maximum Absolute Displacement",
-    legend=false
-)
+    if N_MC > 10
+        legendval = false
+    else
+        legendval = :bottomright
+    end
 
-# Histograms for all realized wind loads at node 2 and node 3
-wl_node2_values = vcat(samples.wl_node2[:]...)
-wl_node3_values = vcat(samples.wl_node3[:]...)
+    if N_MC <= 1000
+        # plot all wind loads at node 2 for all samples
+        pwl_node2 = plot(t, samples.wl_node2[:];
+            label="Wind Load at Node 2 (kN)", 
+            xlabel="Time (s)", 
+            ylabel="Wind Load (kN)", 
+            title="Wind Loads at Node 2 for All Samples",
+            legend=legendval
+        )
 
-# Create a single plot with both histograms on it
-phist_wl = histogram(wl_node2_values, 
-    bins=30, 
-    xlabel="Wind Load (kN)", 
-    ylabel="Frequency",
-    label ="Node 2",
-    title="Histogram of Wind Loads",
-    legend=true # Or simply omit this line, as 'true' is often the default
-)
+        # plot all wind speed signals for all samples
+        pwl_base = plot(t, samples.wl_base[:];
+            label="Wind Speed (m/s)", 
+            xlabel="Time (s)", 
+            ylabel="Wind Speed (m/s)", 
+            title="Wind Speeds for All Samples",
+            legend=legendval
+        )
+    end
 
-# Add the second histogram to the same plot
-histogram!(phist_wl, wl_node3_values, 
-    bins=30, 
-    label="Node 3"
-)
+    # Histogram of the maximum absolute displacement
+    max_abs_disp_values = samples.max_abs_disp
+    phist_maxdisp = histogram(max_abs_disp_values, 
+        bins=30, 
+        xlabel="Maximum Displacement (m)", 
+        ylabel="Frequency", 
+        title="Histogram of Maximum Absolute Displacement",
+        legend=false
+    )
 
-# aggregate the histograms for disp and wind loads at node 2 and node 3
-phist = plot(phist_maxdisp, phist_wl; layout=(2, 1), size=(800, 600), title="Histograms")
+    # Histograms for all realized wind loads at node 2 and node 3
+    wl_node2_values = vcat(samples.wl_node2[:]...)
+    wl_node3_values = vcat(samples.wl_node3[:]...)
 
-display(phist)
+    # Create a single plot with both histograms on it
+    phist_wl = histogram(wl_node2_values, 
+        bins=30, 
+        xlabel="Wind Load (kN)", 
+        ylabel="Frequency",
+        label ="Node 2",
+        title="Histogram of Wind Loads",
+        legend=true # Or simply omit this line, as 'true' is often the default
+    )
 
-display(pdisp)
+    # Add the second histogram to the same plot
+    histogram!(phist_wl, wl_node3_values, 
+        bins=30, 
+        label="Node 3"
+    )
+
+    # aggregate the histograms for disp and wind loads at node 2 and node 3
+    phist = plot(phist_maxdisp, phist_wl; layout=(2, 1), size=(800, 600), title="Histograms")
+
+    display(pwl_base)
+
+    display(pwl_node2)
+
+    display(phist)
+
+    display(pdisp)
+
+end
 
 rmprocs()
 

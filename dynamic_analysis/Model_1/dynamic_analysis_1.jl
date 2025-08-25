@@ -28,7 +28,7 @@ DOWEWANTplots = true
     # roughly derived parameters from https://www.sciencedirect.com/science/article/pii/S0167610520302725
     σ_u = 1 # standard deviation of wind speed in m/s
     L_u = 50.8 # length scale in m
-    v_mean = 10.0 # mean wind speed in m/s
+    v_mean = 30.0 # mean wind speed in m/s
     karmanfunc = (f) -> σ_u^2 * (4*L_u / v_mean) / ((1 + (2*π*f * L_u / v_mean)^2)^(5/6))
     psdvalues = karmanfunc.(fdisc)
 

@@ -29,28 +29,28 @@ model basic -ndm 2 -ndf 3;	       #  2 = number of dimensions, 3 = degrees of fr
 
 # define GEOMETRY -------------------------------------------------------------
 # nodal coordinates:
-node 3 0. 0.;					   # node X Y
+node 1 0. 50;					   # node X Y
 node 2 0. 40;                      # length in meters
-node 1 0. 50;
+node 3 0. 0.;
 
 # Single point constraints -- Boundary Conditions
 fix 3 1 1 1; 			           # node DX DY RZ (0 = unconstrained, 1 = constrained)
 
 # nodal masses:
-mass 2 0 10.54e+03 0.;			   # node XD DY RZ (Mass=Weight in kg)
-mass 1 0 2.63e+03 0.;               # Mass in the Y-direction is needed for gravity loads
+mass 1 0 1896.76 0.;			   # node XD DY RZ (Mass=Weight in kg)
+mass 2 0 11275.24 0.;               # Mass in the Y-direction is needed for gravity loads
                                        
 # Define ELEMENTS -------------------------------------------------------------
 # define geometric transformation: performs a linear geometric transformation of beam stiffness and resisting force from the basic system to the global-coordinate system
 geomTransf Linear 1;  		       # geomTransf Linear $transfTag     
 
 #define section properties: section Elastic $secTag $E $A $Iz
-section Elastic 1 {{{:E}}} 0.1 {{{:Iz}}}  
+section Elastic 1 {{{:E}}} 0.007 0.98  
+section Elastic 2 {{{:E}}} 0.015 4.0
 
 # connectivity: element elasticBeamColumn $eleTag $iNode $jNode $secTag $transfTag
 element elasticBeamColumn 1 1 2 1 1;  
-element elasticBeamColumn 2 2 3 1 1;  
-
+element elasticBeamColumn 2 2 3 2 1;  
 
 # define GRAVITY using UniformExcitation -------------------------------------
 timeSeries Constant 1

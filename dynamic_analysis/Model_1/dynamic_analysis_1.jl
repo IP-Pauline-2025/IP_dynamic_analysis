@@ -20,7 +20,6 @@ DOWEWANTplots = true
     # parameter definition, they can be changed but are the same for each sample
     Δt = Parameter(0.02, :dt)                       # time step size
     E = RandomVariable(Uniform(2.0e8, 2.2e8), :E)   # Young's modulus
-    Iz= RandomVariable(Uniform(2e-2, 1e-1), :Iz)    # second moment of area
     t = collect(0:Δt.value:40)                      # time vector
     timeSteps = Parameter(length(t), :timeSteps)    # number of time steps
 
@@ -151,8 +150,8 @@ if DOWEWANTplots
     println("Maximum tip displacement: $max_tip_disp m")
     #With following material properties:
     println("Young's modulus: $(samples.E[nmc]) Pa")
-    println("Second moment of area: $(samples.Iz[nmc]) m^4")
-    println("Cross sectional area (fixed in .tcl):" , 0.1, " m^2")
+    println("Second moment of area: according to section m^4")
+    println("Cross sectional area according to section m^2")
     # Maximum occuring wind speed
     max_wind_speed = maximum(abs.(samples.wl_base[nmc]))
     println("Maximum wind speed: $max_wind_speed m/s")

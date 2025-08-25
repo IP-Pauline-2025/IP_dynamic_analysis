@@ -114,7 +114,7 @@ analysis Transient;					 # define type of analysis: time-dependent
 #analyze 3995 0.01;					 # apply 3995 0.01-sec time steps in analysis
 # Read number of lines in wind-load-node2.dat (or node3)
 set dt {{{ :dt }}}
-set tEnd 40.0
+set tEnd {{{ :T }}}
 # Calculate the number of steps so that you get N = (tEnd/dt) + 1 output points
 set nSteps [expr int($tEnd / $dt)]
 record ; # Write initial state (t=0) to the output file

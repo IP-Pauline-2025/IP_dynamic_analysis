@@ -12,7 +12,7 @@
 #    ^Y	
 #    |                  
 #    |
-#    3     50m _  
+#    1     50m _  
 #    |         | 
 #    |         | 
 #    2     40m | 
@@ -20,7 +20,7 @@
 #    |         | 
 #    |         | 
 #    |         | 
-#    1    ----  -------->X
+#    3    ----  -------->X
 #
 
 # SET UP ----------------------------------------------------------------------------
@@ -29,16 +29,16 @@ model basic -ndm 2 -ndf 3;	       #  2 = number of dimensions, 3 = degrees of fr
 
 # define GEOMETRY -------------------------------------------------------------
 # nodal coordinates:
-node 1 0. 0.;					   # node X Y
+node 3 0. 0.;					   # node X Y
 node 2 0. 40;                      # length in meters
-node 3 0. 50;
+node 1 0. 50;
 
 # Single point constraints -- Boundary Conditions
-fix 1 1 1 1; 			           # node DX DY RZ (0 = unconstrained, 1 = constrained)
+fix 3 1 1 1; 			           # node DX DY RZ (0 = unconstrained, 1 = constrained)
 
 # nodal masses:
 mass 2 0 10.54e+03 0.;			   # node XD DY RZ (Mass=Weight in kg)
-mass 3 0 2.63e+03 0.;               # Mass in the Y-direction is needed for gravity loads
+mass 1 0 2.63e+03 0.;               # Mass in the Y-direction is needed for gravity loads
                                        
 # Define ELEMENTS -------------------------------------------------------------
 # define geometric transformation: performs a linear geometric transformation of beam stiffness and resisting force from the basic system to the global-coordinate system
@@ -73,7 +73,7 @@ loadConst -time 0.0;        # set time to zero for static analysis
 # Define RECORDERS -------------------------------------------------------------
 # displacements of free nodes
 # Node recorder type records the response of a number of nodes at every converged step
-recorder Node -file displacement.out -time -node 3 -dof 1 disp		            
+recorder Node -file displacement.out -time -node 1 -dof 1 disp		            
 # recorder Node <-file $fileName><-time><-node $node1 $node2 ...>-dof ($dof1 $dof2 ...) $respType'
 #disp = displacement
 
@@ -92,10 +92,10 @@ pattern Plain 2 2 -timeSeries 2 {
     load 2 1.0 0.0 0.0;
 }
 
-# For node 3
-timeSeries Path 3 -dt {{{ :dt }}} -filePath wind-load-node3.dat -factor 1.0;
+# For node 1
+timeSeries Path 3 -dt {{{ :dt }}} -filePath wind-load-node1.dat -factor 1.0;
 pattern Plain 3 3 -timeSeries 3 {
-    load 3 1.0 0.0 0.0
+    load 1 1.0 0.0 0.0
 }
 
 # set damping based on first eigen mode

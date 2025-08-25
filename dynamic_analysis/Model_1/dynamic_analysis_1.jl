@@ -46,7 +46,7 @@ DOWEWANTplots = true
     else
         sourcedir = joinpath(pwd(), "C:/IP/dynamic_analysis/Model_1")
     end
-    sourcefile = ["FEM_1.tcl", "wind-speed.dat", "wind-load-abs.dat", "wind-load-node2.dat", "wind-load-node3.dat"]
+    sourcefile = ["FEM_1.tcl", "wind-speed.dat", "wind-load-abs.dat", "wind-load-node2.dat", "wind-load-node1.dat"]
 
     numberformats = Dict(:dt => ".8e", :wl => ".8e", :E => ".8e", :Iz => ".8e")
 
@@ -98,12 +98,12 @@ DOWEWANTplots = true
         for wl_vec in df.wl_base], 
         :wl_node2)  
 
-    wl_node3_model = Model(df -> [
+    wl_node1_model = Model(df -> [
         [calculate_wind_force(                      
             0, v, 53.0, 50.0, 4, 5.02, 23.82, 3.02, 2.0, 0.0)
         for v in wl_vec]
         for wl_vec in df.wl_base],
-        :wl_node3)
+        :wl_node1)
 
         
     # define the external model that runs OpenSees, this is the model that will be run for each sample
@@ -113,7 +113,7 @@ DOWEWANTplots = true
     )
 
     # this needs to include the models that are needed and that you want to use
-    models = [wl_model, base_wl_model, wl_node2_model, wl_node3_model, ext]
+    models = [wl_model, base_wl_model, wl_node2_model, wl_node1_model, ext]
 end
 
 # this runs the reliability analysis, in this case a Monte Carlo simulation with N_MC samples
@@ -163,7 +163,7 @@ if DOWEWANTplots
     pdisp = plot(t, samples.wl_base[nmc]; label="wind speed in m/s", xlabel="time in s", ylabel="wind speed and displacement", legend=:topright)
     plot!(samples.sim_time[nmc], samples.disp[nmc]; label="Displacement at top node in m", linewidth=2)
     plot!(samples.sim_time[nmc], samples.wl_node2[nmc]; label="Wind load at node 2 in kN", linewidth=2)
-    plot!(samples.sim_time[nmc], samples.wl_node3[nmc]; label="Wind load at node 3 (top) in KN", linewidth=2)
+    plot!(samples.sim_time[nmc], samples.wl_node1[nmc]; label="Wind load at node 1 (top) in KN", linewidth=2)
     # This file was generated using Literate.jl, https://github.com/fredrikekre/Literate.jl
 
     if N_MC > 10
@@ -204,9 +204,9 @@ if DOWEWANTplots
         legend=false
     )
 
-    # Histograms for all realized wind loads at node 2 and node 3
+    # Histograms for all realized wind loads at node 2 and node 1
     wl_node2_values = vcat(samples.wl_node2[:]...)
-    wl_node3_values = vcat(samples.wl_node3[:]...)
+    wl_node1_values = vcat(samples.wl_node1[:]...)
 
     # Create a single plot with both histograms on it
     phist_wl = histogram(wl_node2_values, 
@@ -219,12 +219,12 @@ if DOWEWANTplots
     )
 
     # Add the second histogram to the same plot
-    histogram!(phist_wl, wl_node3_values, 
+    histogram!(phist_wl, wl_node1_values, 
         bins=30, 
-        label="Node 3"
+        label="Node 1"
     )
 
-    # aggregate the histograms for disp and wind loads at node 2 and node 3
+    # aggregate the histograms for disp and wind loads at node 2 and node 1
     phist = plot(phist_maxdisp, phist_wl; layout=(2, 1), size=(800, 600), title="Histograms")
 
     display(phist)

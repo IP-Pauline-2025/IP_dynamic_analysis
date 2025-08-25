@@ -120,9 +120,9 @@ end
 N_MC = 100 # Number of Monte Carlo Samples
 println("Running Monte Carlo simulation with $N_MC samples...")
 # this part: df -> 200 .- df.max_abs_disp
+capacity = 0.25 #maximum allowed displacements in m
 # actually defines the performance function also known as limit state function which is evaluated for each of the samples, if you use the same record this of course does not make any sense
 pf, mc_std, samples = probability_of_failure(models, df -> 1 .- df.max_abs_disp, [Δt, timeSteps, wl, E, T], MonteCarlo(N_MC))
-println
 println("Probability of failure: $pf")
 
 ######################################### plotting section ################################################################ 

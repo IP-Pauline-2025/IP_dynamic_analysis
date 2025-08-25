@@ -20,7 +20,7 @@ DOWEWANTplots = true
     # parameter definition, they can be changed but are the same for each sample
     Δt = Parameter(0.02, :dt)                       # time step size
     E = RandomVariable(Uniform(2.0e8, 2.2e8), :E)   # Young's modulus
-    T = Parameter(60, :T)                           # total time of simulation
+    T = Parameter(100, :T)                          # total time of simulation
     t = collect(0:Δt.value:T.value)                 # time vector
     timeSteps = Parameter(length(t), :timeSteps)    # number of time steps
 
@@ -48,7 +48,7 @@ DOWEWANTplots = true
     end
     sourcefile = ["FEM_1.tcl", "wind-speed.dat", "wind-load-abs.dat", "wind-load-node2.dat", "wind-load-node1.dat"]
 
-    numberformats = Dict(:dt => ".8e", :wl => ".8e", :E => ".8e", :Iz => ".8e", :T => ".8e")
+    numberformats = Dict(:dt => ".8e", :wl => ".8e", :E => ".8e", :T => ".8e")
 
     # case where the results are stored
     workdir = joinpath(pwd(), "workdir-1")
@@ -121,7 +121,7 @@ N_MC = 100 # Number of Monte Carlo Samples
 println("Running Monte Carlo simulation with $N_MC samples...")
 # this part: df -> 200 .- df.max_abs_disp
 # actually defines the performance function also known as limit state function which is evaluated for each of the samples, if you use the same record this of course does not make any sense
-pf, mc_std, samples = probability_of_failure(models, df -> 1 .- df.max_abs_disp, [Δt, timeSteps, wl, E, Iz, T], MonteCarlo(N_MC))
+pf, mc_std, samples = probability_of_failure(models, df -> 1 .- df.max_abs_disp, [Δt, timeSteps, wl, E, T], MonteCarlo(N_MC))
 println
 println("Probability of failure: $pf")
 

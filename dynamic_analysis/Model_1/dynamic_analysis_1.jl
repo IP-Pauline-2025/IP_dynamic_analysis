@@ -1,18 +1,36 @@
-using Distributed, Printf, Dates, Plots
+using Distributed, Printf, Dates, Plots, JSON
 time_stamp = Dates.format(now(),  "yyyymmdd_HHMMSS")
 @printf "[%s]: " time_stamp
 println("Reliability Analysis of a Dynamic Tower-like Structure under Wind loads")
 tic_total = time()
 
-addprocs(6)
+# MC simulation
+# Automatically detect number of workers from Slurm
+jobid = get(ENV, "SLURM_JOB_ID", "local")
+if jobid == "local"
+    nworkerz = 6
+    addprocs(nworkerz)
+    println("Number of workers: $(nworkerz)")
+else
+    nprocs_requested = nprocs_requested = parse(Int, get(ENV, "SLURM_NTASKS", "1"))
+    if nprocs_requested > nworkers()
+        addprocs(nprocs_requested - (nworkers()-1))
+    end
+    println("Number of workers: $(nworkers())")
+end
 
 DOWEWANTplots = true
+DOWEWANTseeplots = false
+DOWEWANTsaveplots = true
+DOWEWANTsaveresults = true
 
 @everywhere begin
     using UncertaintyQuantification, DelimitedFiles
     hostname = gethostname()
     if hostname == "IRZ-PC1337"
         include("C:/OMNISSIAH/Julia/2025-08-pauline-git/dynamic_analysis/calculate_wind_force.jl")
+    elseif Sys.islinux()
+        include("/home/bittner/Documents/Julia/2025-08-22-Wind-Tower-Truss-Structure/dynamic_analysis/calculate_wind_force.jl")
     else
         include("C:/IP/dynamic_analysis/calculate_wind_force.jl")
     end
@@ -43,6 +61,8 @@ DOWEWANTplots = true
 
     if hostname == "IRZ-PC1337"
         sourcedir = joinpath(pwd(), "C:/OMNISSIAH/Julia/2025-08-pauline-git/dynamic_analysis/Model_1")
+    elseif Sys.islinux()
+        sourcedir = "/home/bittner/Documents/Julia/2025-08-22-Wind-Tower-Truss-Structure/dynamic_analysis/Model_1"
     else
         sourcedir = joinpath(pwd(), "C:/IP/dynamic_analysis/Model_1")
     end
@@ -117,13 +137,15 @@ DOWEWANTplots = true
 end
 
 # this runs the reliability analysis, in this case a Monte Carlo simulation with N_MC samples
-N_MC = 100 # Number of Monte Carlo Samples
+N_MC = 10000 # Number of Monte Carlo Samples
 println("Running Monte Carlo simulation with $N_MC samples...")
 # this part: df -> 200 .- df.max_abs_disp
 # actually defines the performance function also known as limit state function which is evaluated for each of the samples, if you use the same record this of course does not make any sense
-pf, mc_std, samples = probability_of_failure(models, df -> 1 .- df.max_abs_disp, [Δt, timeSteps, wl, E, Iz], MonteCarlo(N_MC))
+pf, mc_std, samples = probability_of_failure(models, df -> 0.25 .- df.max_abs_disp, [Δt, timeSteps, wl, E, Iz], MonteCarlo(N_MC))
 println
 println("Probability of failure: $pf")
+# remove the processes
+rmprocs()
 
 ######################################### plotting section ################################################################ 
 if DOWEWANTplots
@@ -227,13 +249,29 @@ if DOWEWANTplots
     # aggregate the histograms for disp and wind loads at node 2 and node 3
     phist = plot(phist_maxdisp, phist_wl; layout=(2, 1), size=(800, 600), title="Histograms")
 
-    display(phist)
+    if DOWEWANTseeplots
+        display(phist)
+        display(pdisp)
+    end
 
-    display(pdisp)
-
+    if DOWEWANTsaveplots
+        png(pdisp, joinpath(workdir, time_stamp*"displacement_windload_timeseries.png"))
+        png(phist, joinpath(workdir, time_stamp*"histograms.png"))
+    end
 end
 
-rmprocs()
+if DOWEWANTsaveresults
+    #### Save results
+    # Save the hyperparameters
+    hyperparameters = Dict(
+        "Nsamples" => N_MC,
+        "pf" => pf,
+        "jobid" => jobid,
+    )
+    open(joinpath(workdir, time_stamp*"metadata.json"), "w") do f
+        JSON.print(f, hyperparameters, 4)
+    end
+end
 
 ####################################################################################################################################
 toc_total = time() - tic_total

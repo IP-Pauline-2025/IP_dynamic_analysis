@@ -40,6 +40,8 @@ DOWEWANTsaveresults = true
     E = RandomVariable(Uniform(2.0e8, 2.2e8), :E)   # Young's modulus
     T = Parameter(100, :T)                          # total time of simulation
     t = collect(0:Δt.value:T.value)                 # time vector
+    T = Parameter(100, :T)                          # total time of simulation
+    t = collect(0:Δt.value:T.value)                 # time vector
     timeSteps = Parameter(length(t), :timeSteps)    # number of time steps
 
     # von Karman spectrum
@@ -47,6 +49,7 @@ DOWEWANTsaveresults = true
     # roughly derived parameters from https://www.sciencedirect.com/science/article/pii/S0167610520302725
     σ_u = 1 # standard deviation of wind speed in m/s
     L_u = 50.8 # length scale in m
+    v_mean = 30.0 # mean wind speed in m/s
     v_mean = 30.0 # mean wind speed in m/s
     karmanfunc = (f) -> σ_u^2 * (4*L_u / v_mean) / ((1 + (2*π*f * L_u / v_mean)^2)^(5/6))
     psdvalues = karmanfunc.(fdisc)
@@ -67,7 +70,9 @@ DOWEWANTsaveresults = true
         sourcedir = joinpath(pwd(), "C:/IP/dynamic_analysis/Model_1")
     end
     sourcefile = ["FEM_1.tcl", "wind-speed.dat", "wind-load-abs.dat", "wind-load-node2.dat", "wind-load-node1.dat"]
+    sourcefile = ["FEM_1.tcl", "wind-speed.dat", "wind-load-abs.dat", "wind-load-node2.dat", "wind-load-node1.dat"]
 
+    numberformats = Dict(:dt => ".8e", :wl => ".8e", :E => ".8e", :T => ".8e")
     numberformats = Dict(:dt => ".8e", :wl => ".8e", :E => ".8e", :T => ".8e")
 
     # case where the results are stored
@@ -75,10 +80,14 @@ DOWEWANTsaveresults = true
 
     t_start = 20.0  # nur Daten ab dieser Simulationszeit
 
+    t_start = 20.0  # nur Daten ab dieser Simulationszeit
+
     # define the models that extract the results from the OpenSees output files, we are interested in the maximum absolute displacement, the displacement at the top node and the simulation time
     max_abs_disp = Extractor(base -> begin
         file = joinpath(base, "displacement.out")
         data = DelimitedFiles.readdlm(file, ' ')
+        sel  = data[:,1] .>= t_start
+        return maximum(abs.(data[sel, 2]))
         sel  = data[:,1] .>= t_start
         return maximum(abs.(data[sel, 2]))
     end, :max_abs_disp)
@@ -89,12 +98,16 @@ DOWEWANTsaveresults = true
         data = DelimitedFiles.readdlm(file, ' ')
         sel  = data[:,1] .>= t_start
         return data[sel, 2]
+        sel  = data[:,1] .>= t_start
+        return data[sel, 2]
     end, :disp)
 
     # this is the simulation time, also only needed for plotting
     sim_time = Extractor(base -> begin
         file = joinpath(base, "displacement.out")
         data = DelimitedFiles.readdlm(file, ' ')
+        sel  = data[:,1] .>= t_start
+        return data[sel, 1]
         sel  = data[:,1] .>= t_start
         return data[sel, 1]
     end, :sim_time)
@@ -120,10 +133,12 @@ DOWEWANTsaveresults = true
         :wl_node2)  
 
     wl_node1_model = Model(df -> [
+    wl_node1_model = Model(df -> [
         [calculate_wind_force(                      
             0, v, 53.0, 50.0, 4, 5.02, 23.82, 3.02, 2.0, 0.0)
         for v in wl_vec]
         for wl_vec in df.wl_base],
+        :wl_node1)
         :wl_node1)
 
         
@@ -135,12 +150,14 @@ DOWEWANTsaveresults = true
 
     # this needs to include the models that are needed and that you want to use
     models = [wl_model, base_wl_model, wl_node2_model, wl_node1_model, ext]
+    models = [wl_model, base_wl_model, wl_node2_model, wl_node1_model, ext]
 end
 
 # this runs the reliability analysis, in this case a Monte Carlo simulation with N_MC samples
 N_MC = 10000 # Number of Monte Carlo Samples
 println("Running Monte Carlo simulation with $N_MC samples...")
 # this part: df -> 200 .- df.max_abs_disp
+capacity = 0.25 #maximum allowed displacements in m
 capacity = 0.25 #maximum allowed displacements in m
 # actually defines the performance function also known as limit state function which is evaluated for each of the samples, if you use the same record this of course does not make any sense
 pf, mc_std, samples = probability_of_failure(models, df -> capacity .- df.max_abs_disp, [Δt, timeSteps, wl, E, Iz], MonteCarlo(N_MC))
@@ -177,6 +194,8 @@ if DOWEWANTplots
     println("Young's modulus: $(samples.E[nmc]) Pa")
     println("Second moment of area: according to section m^4")
     println("Cross sectional area according to section m^2")
+    println("Second moment of area: according to section m^4")
+    println("Cross sectional area according to section m^2")
     # Maximum occuring wind speed
     max_wind_speed = maximum(abs.(samples.wl_base[nmc]))
     println("Maximum wind speed: $max_wind_speed m/s")
@@ -186,6 +205,8 @@ if DOWEWANTplots
 
     pdisp = plot(t, samples.wl_base[nmc]; label="wind speed in m/s", xlabel="time in s", ylabel="wind speed and displacement", legend=:topright)
     plot!(samples.sim_time[nmc], samples.disp[nmc]; label="Displacement at top node in m", linewidth=2)
+    plot!(t, samples.wl_node2[nmc]; label="Wind load at node 2 in kN", linewidth=2)
+    plot!(t, samples.wl_node1[nmc]; label="Wind load at node 1 (top) in KN", linewidth=2)
     plot!(t, samples.wl_node2[nmc]; label="Wind load at node 2 in kN", linewidth=2)
     plot!(t, samples.wl_node1[nmc]; label="Wind load at node 1 (top) in KN", linewidth=2)
     # This file was generated using Literate.jl, https://github.com/fredrikekre/Literate.jl
@@ -229,7 +250,9 @@ if DOWEWANTplots
     )
 
     # Histograms for all realized wind loads at node 2 and node 1
+    # Histograms for all realized wind loads at node 2 and node 1
     wl_node2_values = vcat(samples.wl_node2[:]...)
+    wl_node1_values = vcat(samples.wl_node1[:]...)
     wl_node1_values = vcat(samples.wl_node1[:]...)
 
     # Create a single plot with both histograms on it
@@ -244,10 +267,13 @@ if DOWEWANTplots
 
     # Add the second histogram to the same plot
     histogram!(phist_wl, wl_node1_values, 
+    histogram!(phist_wl, wl_node1_values, 
         bins=30, 
+        label="Node 1"
         label="Node 1"
     )
 
+    # aggregate the histograms for disp and wind loads at node 2 and node 1
     # aggregate the histograms for disp and wind loads at node 2 and node 1
     phist = plot(phist_maxdisp, phist_wl; layout=(2, 1), size=(800, 600), title="Histograms")
 

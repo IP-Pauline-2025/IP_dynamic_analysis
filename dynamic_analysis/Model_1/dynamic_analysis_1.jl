@@ -53,30 +53,31 @@ DOWEWANTplots = true
     # case where the results are stored
     workdir = joinpath(pwd(), "workdir-1")
 
+    t_start = 20.0  # nur Daten ab dieser Simulationszeit
+
     # define the models that extract the results from the OpenSees output files, we are interested in the maximum absolute displacement, the displacement at the top node and the simulation time
     max_abs_disp = Extractor(base -> begin
         file = joinpath(base, "displacement.out")
         data = DelimitedFiles.readdlm(file, ' ')
-
-        return maximum(abs.(data[:, 2]))
+        sel  = data[:,1] .>= t_start
+        return maximum(abs.(data[sel, 2]))
     end, :max_abs_disp)
 
     # this is the displacement time history, only needed for plotting
     disp = Extractor(base -> begin
         file = joinpath(base, "displacement.out")
         data = DelimitedFiles.readdlm(file, ' ')
-
-        return data[:, 2]
+        sel  = data[:,1] .>= t_start
+        return data[sel, 2]
     end, :disp)
 
     # this is the simulation time, also only needed for plotting
     sim_time = Extractor(base -> begin
         file = joinpath(base, "displacement.out")
         data = DelimitedFiles.readdlm(file, ' ')
-
-        return data[:, 1]
+        sel  = data[:,1] .>= t_start
+        return data[sel, 1]
     end, :sim_time)
-
 
     opensees = Solver(
         "OpenSees", # path to OpenSees binary
@@ -162,8 +163,8 @@ if DOWEWANTplots
 
     pdisp = plot(t, samples.wl_base[nmc]; label="wind speed in m/s", xlabel="time in s", ylabel="wind speed and displacement", legend=:topright)
     plot!(samples.sim_time[nmc], samples.disp[nmc]; label="Displacement at top node in m", linewidth=2)
-    plot!(samples.sim_time[nmc], samples.wl_node2[nmc]; label="Wind load at node 2 in kN", linewidth=2)
-    plot!(samples.sim_time[nmc], samples.wl_node1[nmc]; label="Wind load at node 1 (top) in KN", linewidth=2)
+    plot!(t, samples.wl_node2[nmc]; label="Wind load at node 2 in kN", linewidth=2)
+    plot!(t, samples.wl_node1[nmc]; label="Wind load at node 1 (top) in KN", linewidth=2)
     # This file was generated using Literate.jl, https://github.com/fredrikekre/Literate.jl
 
     if N_MC > 10

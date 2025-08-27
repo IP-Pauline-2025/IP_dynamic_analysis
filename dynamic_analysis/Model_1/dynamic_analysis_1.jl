@@ -20,8 +20,8 @@ else
 end
 
 DOWEWANTplots = true
-DOWEWANTseeplots = false
-DOWEWANTsaveplots = true
+DOWEWANTseeplots = true
+DOWEWANTsaveplots = false
 DOWEWANTsaveresults = true
 
 @everywhere begin
@@ -145,7 +145,7 @@ DOWEWANT_SUS = false
 
 if DOWEWANT_MC
     # this runs the reliability analysis, in this case a Monte Carlo simulation with N samples
-    N = 25000 # Number of Monte Carlo Samples
+    N = 10 # Number of Monte Carlo Samples
     println("Running Monte Carlo simulation with $N samples...")
     pf, std, samples = probability_of_failure(models, df -> capacity .- df.max_abs_disp, [Δt, timeSteps, wl, E, T], MonteCarlo(N))
     println("Probability of failure according to MC: $pf")
@@ -202,7 +202,6 @@ if DOWEWANTplots
     plot!(t, samples.wl_node2[nmc]; label="Wind load at node 2 in kN", linewidth=2)
     plot!(t, samples.wl_node1[nmc]; label="Wind load at node 1 (top) in KN", linewidth=2)
 
-    if N > 10
         # Normalized wind speed and displacement for sample nmc
         norm_wind_speed = samples.wl_base[nmc] ./ maximum(abs.(samples.wl_base[nmc]))
         norm_disp = samples.disp[nmc] ./ maximum(abs.(samples.disp[nmc]))
@@ -217,7 +216,6 @@ if DOWEWANTplots
         )
         plot!(t, norm_wind_speed; label="Normalized Wind Speed", linewidth=2)
         display(pnorm)
-    end
 
     if N > 10
         legendval = false

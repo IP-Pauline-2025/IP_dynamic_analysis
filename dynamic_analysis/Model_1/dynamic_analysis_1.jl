@@ -167,6 +167,21 @@ if DOWEWANTplots
     plot!(t, samples.wl_node1[nmc]; label="Wind load at node 1 (top) in KN", linewidth=2)
     # This file was generated using Literate.jl, https://github.com/fredrikekre/Literate.jl
 
+    # Normalized wind speed and displacement for sample nmc
+    norm_wind_speed = samples.wl_base[nmc] ./ maximum(abs.(samples.wl_base[nmc]))
+    norm_disp = samples.disp[nmc] ./ maximum(abs.(samples.disp[nmc]))
+
+    pnorm = plot(
+        samples.sim_time[nmc], norm_disp;
+        label="Normalized Displacement",
+        xlabel="Time (s)",
+        ylabel="Normalized Value",
+        legend=:topright,
+        linewidth=2
+    )
+    plot!(t, norm_wind_speed; label="Normalized Wind Speed", linewidth=2)
+    display(pnorm)
+
     if N_MC > 10
         legendval = false
     else
@@ -233,6 +248,8 @@ if DOWEWANTplots
     display(pdisp)
 
 end
+
+
 
 rmprocs()
 

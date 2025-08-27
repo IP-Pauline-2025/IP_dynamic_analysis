@@ -341,12 +341,28 @@ end
 N_MC = 10 # Number of Monte Carlo Samples
 println("Running Monte Carlo simulation with $N_MC samples...")
 # this part: df -> 200 .- df.max_abs_disp
-capacity = 0.25 #maximum allowed displacements in m
+capacity = 0.08 #maximum allowed displacements in m
 # actually defines the performance function also known as limit state function which is evaluated for each of the samples, if you use the same record this of course does not make any sense
 pf, mc_std, samples = probability_of_failure(models, df -> 1 .- df.max_abs_disp, [Δt, timeSteps, wl, E, T], MonteCarlo(N_MC))
 println("Probability of failure: $pf")
 
 ######################################### plotting section ################################################################ 
+
+using DataFrames, CSV
+wind_max = map(v -> maximum(v), samples.wl_base)
+fail      = samples.max_abs_disp .> capacity
+
+df_fail = DataFrame(
+    sample        = findall(fail),
+    max_abs_disp  = samples.max_abs_disp[fail],
+    E             = samples.E[fail],
+    wind_max_mps  = wind_max[fail],        
+)
+
+println(df_fail)                
+CSV.write("fails.csv", df_fail) 
+
+
 if DOWEWANTplots
     using Plots
 

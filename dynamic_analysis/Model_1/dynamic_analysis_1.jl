@@ -136,17 +136,32 @@ DOWEWANTsaveresults = true
     models = [wl_model, base_wl_model, wl_node2_model, wl_node1_model, ext]
 end
 
-# this runs the reliability analysis, in this case a Monte Carlo simulation with N_MC samples
-N_MC = 10000 # Number of Monte Carlo Samples
-println("Running Monte Carlo simulation with $N_MC samples...")
-# this part: df -> 200 .- df.max_abs_disp
-capacity = 0.25 #maximum allowed displacements in m
-# actually defines the performance function also known as limit state function which is evaluated for each of the samples, if you use the same record this of course does not make any sense
-pf, mc_std, samples = probability_of_failure(models, df -> capacity .- df.max_abs_disp, [Δt, timeSteps, wl, E, T], MonteCarlo(N_MC))
-println("Probability of failure: $pf")
-# remove the processes
-rmprocs()
 
+# the capacity is part of the limit state function
+capacity = 0.008 #maximum allowed displacements in m
+
+DOWEWANT_MC = true
+DOWEWANT_SUS = false
+
+if DOWEWANT_MC
+    # this runs the reliability analysis, in this case a Monte Carlo simulation with N samples
+    N = 25000 # Number of Monte Carlo Samples
+    println("Running Monte Carlo simulation with $N samples...")
+    pf, std, samples = probability_of_failure(models, df -> capacity .- df.max_abs_disp, [Δt, timeSteps, wl, E, T], MonteCarlo(N))
+    println("Probability of failure according to MC: $pf")
+end
+
+if DOWEWANT_SUS
+    N = 1000 # Number of inisital subset samples
+    # Compute probability of failure using Subset Sampling
+    subset = UncertaintyQuantification.SubSetSimulation(N, 0.1, 10, Uniform(-0.5, 0.5))
+    println("Running Subset simulation with $N initial samples...")
+    pf, std, samples = probability_of_failure(models, df -> capacity .- df.max_abs_disp, [Δt, timeSteps, wl, E, T], subset)
+    println("Probability of failure according to SuS: $pf")
+end
+
+#remove all processes from the Distributed stuff
+rmprocs()
 ######################################### plotting section ################################################################ 
 if DOWEWANTplots
     using Plots
@@ -187,13 +202,13 @@ if DOWEWANTplots
     plot!(t, samples.wl_node2[nmc]; label="Wind load at node 2 in kN", linewidth=2)
     plot!(t, samples.wl_node1[nmc]; label="Wind load at node 1 (top) in KN", linewidth=2)
 
-    if N_MC > 10
+    if N > 10
         legendval = false
     else
         legendval = :bottomright
     end
 
-    if N_MC <= 1000
+    if N <= 1000
         # plot all wind loads at node 2 for all samples
         pwl_node2 = plot(t, samples.wl_node2[:];
             label="Wind Load at Node 2 (kN)", 
@@ -265,7 +280,7 @@ if DOWEWANTsaveresults
     #### Save results
     # Save the hyperparameters
     hyperparameters = Dict(
-        "Nsamples" => N_MC,
+        "Nsamples" => N,
         "pf" => pf,
         "jobid" => jobid,
     )

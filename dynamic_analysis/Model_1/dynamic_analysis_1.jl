@@ -203,10 +203,28 @@ if DOWEWANTplots
     plot!(t, samples.wl_node1[nmc]; label="Wind load at node 1 (top) in KN", linewidth=2)
 
     if N > 10
+        # Normalized wind speed and displacement for sample nmc
+        norm_wind_speed = samples.wl_base[nmc] ./ maximum(abs.(samples.wl_base[nmc]))
+        norm_disp = samples.disp[nmc] ./ maximum(abs.(samples.disp[nmc]))
+
+        pnorm = plot(
+            samples.sim_time[nmc], norm_disp;
+            label="Normalized Displacement",
+            xlabel="Time (s)",
+            ylabel="Normalized Value",
+            legend=:topright,
+            linewidth=2
+        )
+        plot!(t, norm_wind_speed; label="Normalized Wind Speed", linewidth=2)
+        display(pnorm)
+    end
+
+    if N > 10
         legendval = false
     else
         legendval = :bottomright
     end
+
 
     if N <= 1000
         # plot all wind loads at node 2 for all samples
@@ -289,6 +307,7 @@ if DOWEWANTsaveresults
     end
 end
 
+rmprocs()
 ####################################################################################################################################
 toc_total = time() - tic_total
 println("Total elapsed time: $(round(toc_total, digits=3))s")

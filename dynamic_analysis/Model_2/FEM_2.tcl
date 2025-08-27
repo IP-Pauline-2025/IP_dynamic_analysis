@@ -137,7 +137,23 @@ loadConst -time 0.0;        # set time to zero for static analysis
 # Define RECORDERS -------------------------------------------------------------
 # displacements of free nodes
 # Node recorder type records the response of a number of nodes at every converged step
-recorder Node -file displacement.out -time -node 1 -dof 1 disp		            
+recorder Node -file displacement_node1.out -time -node 1 -dof 1 disp	
+recorder Node -file displacement_node2.out -time -node 2 -dof 1 disp
+recorder Node -file displacement_node3.out -time -node 3 -dof 1 disp
+recorder Node -file displacement_node4.out -time -node 4 -dof 1 disp
+recorder Node -file displacement_node5.out -time -node 5 -dof 1 disp
+recorder Node -file displacement_node6.out -time -node 6 -dof 1 disp    
+recorder Node -file displacement_node7.out -time -node 7 -dof 1 disp
+recorder Node -file displacement_node8.out -time -node 8 -dof 1 disp
+recorder Node -file displacement_node9.out -time -node 9 -dof 1 disp
+recorder Node -file displacement_node10.out -time -node 10 -dof 1 disp
+recorder Node -file displacement_node11.out -time -node 11 -dof 1 disp
+recorder Node -file displacement_node12.out -time -node 12 -dof 1 disp
+recorder Node -file displacement_node13.out -time -node 13 -dof 1 disp
+recorder Node -file displacement_node14.out -time -node 14 -dof 1 disp
+recorder Node -file displacement_node15.out -time -node 15 -dof 1 disp
+recorder Node -file displacement_node16.out -time -node 16 -dof 1 disp
+recorder Node -file displacement_node17.out -time -node 17 -dof 1 disp
 # recorder Node <-file $fileName><-time><-node $node1 $node2 ...>-dof ($dof1 $dof2 ...) $respType'
 #disp = displacement
 

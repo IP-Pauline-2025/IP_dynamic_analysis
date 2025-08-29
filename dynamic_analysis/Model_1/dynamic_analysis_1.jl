@@ -33,6 +33,7 @@ DOWEWANTsaveresults = true
     else
         include("C:/IP/dynamic_analysis/calculate_wind_force.jl")
     end
+    flush(stdout) # Ensure all output is flushed before starting parallel execution
 
     # parameter definition, they can be changed but are the same for each sample
     Δt = Parameter(0.02, :dt)                       # time step size
@@ -138,8 +139,8 @@ end
 # the capacity is part of the limit state function
 capacity = 0.008 #maximum allowed displacements in m
 
-DOWEWANT_MC = false
-DOWEWANT_SUS = true
+DOWEWANT_MC = true
+DOWEWANT_SUS = false
 
 if DOWEWANT_MC
     # this runs the reliability analysis, in this case a Monte Carlo simulation with N samples

@@ -33,6 +33,7 @@ DOWEWANTsaveresults = true
     else
         include("C:/IP/dynamic_analysis/calculate_wind_force.jl")
     end
+    flush(stdout) # Ensure all output is flushed before starting parallel execution
 
     # parameter definition, they can be changed but are the same for each sample
     Δt = Parameter(0.02, :dt)                       # time step size

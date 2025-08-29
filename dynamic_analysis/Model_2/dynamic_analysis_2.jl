@@ -356,6 +356,7 @@ DOWEWANTsaveresults = true
     ext]
 end
 
+<<<<<<< HEAD
 # the capacity is part of the limit state function
 capacity = 0.1 #maximum allowed displacements in m
 
@@ -381,6 +382,16 @@ end
 
 #remove all processes from the Distributed stuff
 rmprocs()
+=======
+# this runs the reliability analysis, in this case a Monte Carlo simulation with N_MC samples
+N_MC = 10 # Number of Monte Carlo Samples
+println("Running Monte Carlo simulation with $N_MC samples...")
+# this part: df -> 200 .- df.max_abs_disp
+capacity = 0.008 #maximum allowed displacements in m
+# actually defines the performance function also known as limit state function which is evaluated for each of the samples, if you use the same record this of course does not make any sense
+pf, mc_std, samples = probability_of_failure(models, df -> 1 .- df.max_abs_disp, [Δt, timeSteps, wl, E, T], MonteCarlo(N_MC))
+println("Probability of failure: $pf")
+>>>>>>> 454190a6ad3b35147890178619cf2824493f9958
 
 ######################################### plotting section ################################################################ 
 if DOWEWANTplots

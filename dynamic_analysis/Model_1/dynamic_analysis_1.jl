@@ -1,10 +1,9 @@
-using Distributed, Printf, Dates, Plots, JSON
+using Distributed, Printf, Dates, Plots, JSON, JLD2
 time_stamp = Dates.format(now(),  "yyyymmdd_HHMMSS")
 @printf "[%s]: " time_stamp
 println("Reliability Analysis of a Dynamic Tower-like Structure under Wind loads")
 tic_total = time()
 
-# MC simulation
 # Automatically detect number of workers from Slurm
 jobid = get(ENV, "SLURM_JOB_ID", "local")
 if jobid == "local"
@@ -20,8 +19,8 @@ else
 end
 
 DOWEWANTplots = true
-DOWEWANTseeplots = true
-DOWEWANTsaveplots = false
+DOWEWANTseeplots = false
+DOWEWANTsaveplots = true
 DOWEWANTsaveresults = true
 
 @everywhere begin
@@ -136,16 +135,15 @@ DOWEWANTsaveresults = true
     models = [wl_model, base_wl_model, wl_node2_model, wl_node1_model, ext]
 end
 
-
 # the capacity is part of the limit state function
 capacity = 0.008 #maximum allowed displacements in m
 
-DOWEWANT_MC = true
-DOWEWANT_SUS = false
+DOWEWANT_MC = false
+DOWEWANT_SUS = true
 
 if DOWEWANT_MC
     # this runs the reliability analysis, in this case a Monte Carlo simulation with N samples
-    N = 10 # Number of Monte Carlo Samples
+    N = 25000 # Number of Monte Carlo Samples
     println("Running Monte Carlo simulation with $N samples...")
     pf, std, samples = probability_of_failure(models, df -> capacity .- df.max_abs_disp, [Δt, timeSteps, wl, E, T], MonteCarlo(N))
     println("Probability of failure according to MC: $pf")
@@ -299,13 +297,19 @@ if DOWEWANTsaveresults
         "Nsamples" => N,
         "pf" => pf,
         "jobid" => jobid,
+        "MC" => DOWEWANT_MC,
+        "SuS" => DOWEWANT_SUS,
+        "capacity" => capacity,
     )
-    open(joinpath(workdir, time_stamp*"metadata.json"), "w") do f
+    open(joinpath(workdir, time_stamp*"_model_1_metadata.json"), "w") do f
         JSON.print(f, hyperparameters, 4)
     end
+    # Define the filename for your JLD2 file
+    filename = time_stamp*"_model_1_samples.jld2"
+    # Save the DataFrame to the JLD2 file
+    @save filename samples
 end
 
-rmprocs()
 ####################################################################################################################################
 toc_total = time() - tic_total
 println("Total elapsed time: $(round(toc_total, digits=3))s")

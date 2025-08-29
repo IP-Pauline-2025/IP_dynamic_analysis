@@ -1,3 +1,4 @@
 # ignore workdirectories
 workdir-1/
 workdir-2/
+*.jld2

@@ -1,18 +1,35 @@
-using Distributed, Printf, Dates, Plots
+using Distributed, Printf, Dates, Plots, JSON, JLD2
 time_stamp = Dates.format(now(),  "yyyymmdd_HHMMSS")
 @printf "[%s]: " time_stamp
 println("Reliability Analysis of a Dynamic Tower-like Structure under Wind loads")
 tic_total = time()
 
-addprocs(6)
+# Automatically detect number of workers from Slurm
+jobid = get(ENV, "SLURM_JOB_ID", "local")
+if jobid == "local"
+    nworkerz = 6
+    addprocs(nworkerz)
+    println("Number of workers: $(nworkerz)")
+else
+    nprocs_requested = nprocs_requested = parse(Int, get(ENV, "SLURM_NTASKS", "1"))
+    if nprocs_requested > nworkers()
+        addprocs(nprocs_requested - (nworkers()-1))
+    end
+    println("Number of workers: $(nworkers())")
+end
 
 DOWEWANTplots = true
+DOWEWANTseeplots = false
+DOWEWANTsaveplots = true
+DOWEWANTsaveresults = true
 
 @everywhere begin
     using UncertaintyQuantification, DelimitedFiles
     hostname = gethostname()
     if hostname == "IRZ-PC1337"
         include("C:/OMNISSIAH/Julia/2025-08-pauline-git/dynamic_analysis/calculate_wind_force.jl")
+    elseif Sys.islinux()
+        include("/home/bittner/Documents/Julia/2025-08-22-Wind-Tower-Truss-Structure/dynamic_analysis/calculate_wind_force.jl")
     else
         include("C:/IP/dynamic_analysis/calculate_wind_force.jl")
     end
@@ -43,6 +60,8 @@ DOWEWANTplots = true
 
     if hostname == "IRZ-PC1337"
         sourcedir = joinpath(pwd(), "C:/OMNISSIAH/Julia/2025-08-pauline-git/dynamic_analysis/Model_2")
+    elseif Sys.islinux()
+        sourcedir = "/home/bittner/Documents/Julia/2025-08-22-Wind-Tower-Truss-Structure/dynamic_analysis/Model_2"
     else
         sourcedir = joinpath(pwd(), "C:/IP/dynamic_analysis/Model_2")
     end
@@ -337,14 +356,31 @@ DOWEWANTplots = true
     ext]
 end
 
-# this runs the reliability analysis, in this case a Monte Carlo simulation with N_MC samples
-N_MC = 10 # Number of Monte Carlo Samples
-println("Running Monte Carlo simulation with $N_MC samples...")
-# this part: df -> 200 .- df.max_abs_disp
-capacity = 0.25 #maximum allowed displacements in m
-# actually defines the performance function also known as limit state function which is evaluated for each of the samples, if you use the same record this of course does not make any sense
-pf, mc_std, samples = probability_of_failure(models, df -> 1 .- df.max_abs_disp, [Δt, timeSteps, wl, E, T], MonteCarlo(N_MC))
-println("Probability of failure: $pf")
+# the capacity is part of the limit state function
+capacity = 0.1 #maximum allowed displacements in m
+
+DOWEWANT_MC = false
+DOWEWANT_SUS = true
+
+if DOWEWANT_MC
+    # this runs the reliability analysis, in this case a Monte Carlo simulation with N samples
+    N = 10 # Number of Monte Carlo Samples
+    println("Running Monte Carlo simulation with $N samples...")
+    pf, std, samples = probability_of_failure(models, df -> capacity .- df.max_abs_disp, [Δt, timeSteps, wl, E, T], MonteCarlo(N))
+    println("Probability of failure according to MC: $pf")
+end
+
+if DOWEWANT_SUS
+    N = 1000 # Number of inisital subset samples
+    # Compute probability of failure using Subset Sampling
+    subset = UncertaintyQuantification.SubSetSimulation(N, 0.1, 10, Uniform(-0.5, 0.5))
+    println("Running Subset simulation with $N initial samples...")
+    pf, std, samples = probability_of_failure(models, df -> capacity .- df.max_abs_disp, [Δt, timeSteps, wl, E, T], subset)
+    println("Probability of failure according to SuS: $pf")
+end
+
+#remove all processes from the Distributed stuff
+rmprocs()
 
 ######################################### plotting section ################################################################ 
 if DOWEWANTplots
@@ -385,15 +421,30 @@ if DOWEWANTplots
     plot!(samples.sim_time[nmc], samples.disp_node1[nmc]; label="Displacement at top node in m", linewidth=2)
     plot!(t, samples.wl_node2[nmc]; label="Wind load at node 2 in kN", linewidth=2)
     plot!(t, samples.wl_node1[nmc]; label="Wind load at node 1 (top) in KN", linewidth=2)
-    # This file was generated using Literate.jl, https://github.com/fredrikekre/Literate.jl
 
-    if N_MC > 10
+        # Normalized wind speed and displacement for sample nmc
+        norm_wind_speed = samples.wl_base[nmc] ./ maximum(abs.(samples.wl_base[nmc]))
+        norm_disp = samples.disp_node1[nmc] ./ maximum(abs.(samples.disp_node1[nmc]))
+
+        pnorm = plot(
+            samples.sim_time[nmc], norm_disp;
+            label="Normalized Displacement",
+            xlabel="Time (s)",
+            ylabel="Normalized Value",
+            legend=:topright,
+            linewidth=2
+        )
+        plot!(t, norm_wind_speed; label="Normalized Wind Speed", linewidth=2)
+        display(pnorm)
+
+    if N > 10
         legendval = false
     else
         legendval = :bottomright
     end
 
-    if N_MC <= 1000
+
+    if N <= 1000
         # plot all wind loads at node 2 for all samples
         pwl_node2 = plot(t, samples.wl_node2[:];
             label="Wind Load at Node 2 (kN)", 
@@ -446,15 +497,39 @@ if DOWEWANTplots
     )
 
     # aggregate the histograms for disp and wind loads at node 2 and node 1
+    # aggregate the histograms for disp and wind loads at node 2 and node 1
     phist = plot(phist_maxdisp, phist_wl; layout=(2, 1), size=(800, 600), title="Histograms")
 
-    display(phist)
+    if DOWEWANTseeplots
+        display(phist)
+        display(pdisp)
+    end
 
-    display(pdisp)
-
+    if DOWEWANTsaveplots
+        png(pdisp, joinpath(workdir, time_stamp*"displacement_windload_timeseries.png"))
+        png(phist, joinpath(workdir, time_stamp*"histograms.png"))
+    end
 end
 
-rmprocs()
+if DOWEWANTsaveresults
+    #### Save results
+    # Save the hyperparameters
+    hyperparameters = Dict(
+        "Nsamples" => N,
+        "pf" => pf,
+        "jobid" => jobid,
+        "MC" => DOWEWANT_MC,
+        "SuS" => DOWEWANT_SUS,
+        "capacity" => capacity,
+    )
+    open(joinpath(workdir, time_stamp*"_model_2_metadata.json"), "w") do f
+        JSON.print(f, hyperparameters, 4)
+    end
+    # Define the filename for your JLD2 file
+    filename = time_stamp*"_model_2_samples.jld2"
+    # Save the DataFrame to the JLD2 file
+    @save filename samples
+end
 
 ####################################################################################################################################
 toc_total = time() - tic_total

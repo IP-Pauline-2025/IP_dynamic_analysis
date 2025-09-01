@@ -1,10 +1,10 @@
 #!/bin/bash
-#SBATCH --job-name=wind-dyn
+#SBATCH --job-name=wind-dyn1
 #SBATCH --mail-user=bittner@irz.uni-hannover.de
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --output=uq_model_%j.out     # Output file
 #SBATCH --error=uq_model_%j.err      # Error file
-#SBATCH --ntasks=40                  # Number of tasks (adjust as needed)
+#SBATCH --ntasks=15                  # Number of tasks (adjust as needed)
 
 # Navigate to the working directory
 cd $SLURM_SUBMIT_DIR

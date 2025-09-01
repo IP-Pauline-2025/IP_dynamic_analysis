@@ -360,12 +360,12 @@ end
 # the capacity is part of the limit state function
 capacity = 0.1 #maximum allowed displacements in m
 
-DOWEWANT_MC = false
-DOWEWANT_SUS = true
+DOWEWANT_MC = true
+DOWEWANT_SUS = false
 
 if DOWEWANT_MC
     # this runs the reliability analysis, in this case a Monte Carlo simulation with N samples
-    N = 10 # Number of Monte Carlo Samples
+    N = 1000 # Number of Monte Carlo Samples
     println("Running Monte Carlo simulation with $N samples...")
     pf, std, samples = probability_of_failure(models, df -> capacity .- df.max_abs_disp, [Δt, timeSteps, wl, E, T], MonteCarlo(N))
     println("Probability of failure according to MC: $pf")

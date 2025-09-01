@@ -384,6 +384,22 @@ end
 rmprocs()
 
 ######################################### plotting section ################################################################ 
+
+using DataFrames, CSV
+wind_max = map(v -> maximum(v), samples.wl_base)
+fail      = samples.max_abs_disp .> capacity
+
+df_fail = DataFrame(
+    sample        = findall(fail),
+    max_abs_disp  = samples.max_abs_disp[fail],
+    E             = samples.E[fail],
+    wind_max_mps  = wind_max[fail],        
+)
+
+println(df_fail)                
+CSV.write("fails.csv", df_fail) 
+
+
 if DOWEWANTplots
     using Plots
 

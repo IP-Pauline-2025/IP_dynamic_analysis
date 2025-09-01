@@ -1,0 +1,8 @@
+# ignore workdirectories
+workdir-1/
+workdir-2/
+# ignore plot results
+results/**/*.png
+results/**/*.csv
+*.gif
+*.jld2
